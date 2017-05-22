@@ -1,0 +1,7 @@
+*.log
+*.spec
+/.idea
+/__pycache__
+/build
+/dist
+/ignore
