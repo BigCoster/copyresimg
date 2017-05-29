@@ -5,7 +5,7 @@ import logging.handlers
 from configparser import ConfigParser
 import sys
 import progressbar
-import time
+
 Image.MAX_IMAGE_PIXELS = 1700000000
 
 # conf logging
@@ -31,13 +31,13 @@ config['config'] = {'log_level': 'INFO',
                     '; Доступные log_levels': ', '.join(levels.keys()),
                     'resize_to': '1600',
                     '; resize_to': 'Размер в пикселях',
-                    'out_path': 'D:\Dropbox\Projects\Python\Копирование изображений\work',
+                    'out_path': 'D:\Dropbox\Projects\Python\Копирование изображений\ignore\work',
                     '; out_path': 'Папка для сохранения изображений',
-                    'img_path': 'D:\Dropbox\Projects\Python\Копирование изображений\images',
+                    'img_path': 'D:\Dropbox\Projects\Python\Копирование изображений\ignore\images',
                     '; img_path': 'Папка с изображениями',
                     'img_names': 'filenames.txt',
-                    '; img_names': 'Файл со списком названий изображений в utf-8.\
-                     Без расширений, каждое имя с новой строки'}
+                    '; img_names': 'Файл со списком названий изображений в utf-8. '
+                                   'Без расширений, каждое имя с новой строки'}
 
 if not ospath.exists('config.ini'):
     log.warning('No config! It will be created with def values...')
@@ -59,13 +59,14 @@ path = config['config']['img_path']
 # папка, куда будут скопированы файлы
 outpath = config['config']['out_path']
 done = '\\done\\'
+eps = 'eps\\'
 other = '\\other\\'
 # размер по большей стороне
 MAX_SIZE = int(config['config']['resize_to'])
 # екстеншены, которые будем ресайзить в первую очередь
 extensions1 = ('jpg', 'jpeg')
 # полный список поддерживаемых
-extensions = ('tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg')
+extensions = ('tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg', 'eps')
 
 basedir = ospath.abspath(ospath.dirname(__file__)) + '\\'
 # получить список изображений из файла
@@ -122,6 +123,8 @@ if not ospath.exists(outpath):
     makedirs(outpath)
 if not ospath.exists(outpath + done):
     makedirs(outpath + done)
+if not ospath.exists(outpath + done + eps):
+    makedirs(outpath + done + eps)
 if not ospath.exists(outpath + other):
     makedirs(outpath + other)
 
@@ -139,6 +142,9 @@ for file in files:
         try:
             image = Image.open(file)
             original_size = max(image.size[0], image.size[1])
+            if file.split('.')[-1] == 'eps':
+                image.load(scale=MAX_SIZE*1.5/original_size)
+                original_size = max(image.size[0], image.size[1])
             if original_size >= MAX_SIZE:
                 if image.size[0] > image.size[1]:
                     resized_width = MAX_SIZE
@@ -148,7 +154,10 @@ for file in files:
                     resized_width = int(round((MAX_SIZE/float(image.size[1]))*image.size[0]))
                 try:
                     image = image.convert("RGB").resize((resized_width, resized_height), Image.ANTIALIAS)
-                    newpath = outpath + done + file.split('\\')[-1].split('.')[0] + '.jpg'
+                    if file.split('.')[-1] == 'eps':
+                        newpath = outpath + done + eps + file.split('\\')[-1].split('.')[0] + '.jpg'
+                    else:
+                        newpath = outpath + done + file.split('\\')[-1].split('.')[0] + '.jpg'
                     image.save(newpath, 'JPEG', dpi=(72, 72))
                     log.debug('Resized: ' + file.split('\\')[-1])
                     status['Resized'] += 1
