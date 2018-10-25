@@ -16,8 +16,8 @@ formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s', datefmt='
 formatter2 = logging.Formatter('%(message)s')
 console = logging.StreamHandler()
 console.setFormatter(formatter)
-filehandler = logging.handlers.RotatingFileHandler('app.log', maxBytes=1048576, backupCount=5)
-# filehandler = logging.handlers.TimedRotatingFileHandler('NTC1001.log', when='M', backupCount=7)
+filehandler = logging.handlers.RotatingFileHandler('app.log', maxBytes=1048576, backupCount=5, encoding='utf-8')
+# filehandler = logging.handlers.TimedRotatingFileHandler('app.log', when='M', backupCount=7)
 
 filehandler.setFormatter(formatter)
 log.addHandler(console)
@@ -36,6 +36,9 @@ config['config'] = {'log_level': 'INFO',
                     'img_path': 'D:\Dropbox\Projects\Python\Копирование изображений\ignore\images',
                     '; img_path': 'Папка с изображениями',
                     'img_names': 'filenames.txt',
+                    '; first_extensions': 'Расширения, которые ищутся в первую очередь. '
+                                          'Разделенные запятой, без пробела',
+                    'first_extensions': 'jpg,jpeg',
                     '; img_names': 'Файл со списком названий изображений в utf-8. '
                                    'Без расширений, каждое имя с новой строки'}
 
@@ -51,25 +54,26 @@ log.setLevel(config['config']['log_level'])
 console.setFormatter(formatter2)
 filehandler.setFormatter(formatter2)
 log.info('')
-
-# список изображений
+# list of images
 listfile = config['config']['img_names']
-# папка с изображениями
+# folder with images
 path = config['config']['img_path']
 # папка, куда будут скопированы файлы
 outpath = config['config']['out_path']
 done = '\\done\\'
 eps = 'eps\\'
 other = '\\other\\'
-# размер по большей стороне
+# size on the larger side
 MAX_SIZE = int(config['config']['resize_to'])
-# екстеншены, которые будем ресайзить в первую очередь
+# extensions to resize in first step
 extensions1 = ('jpg', 'jpeg')
-# полный список поддерживаемых
+if config['config']['first_extensions'].split(','):
+    extensions1 = config['config']['first_extensions'].split(',')
+# fill list of supported extensions
 extensions = ('tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg', 'eps')
 
 basedir = ospath.abspath(ospath.dirname(__file__)) + '\\'
-# получить список изображений из файла
+# get list of images from file
 listnames = tuple()
 try:
     file = open(listfile, 'r', encoding='utf-8-sig')
@@ -80,8 +84,7 @@ log.info('Names in ' + listfile + ': {}'.format(len(listnames)))
 log.debug(' ' + '\n '.join(l for l in listnames))
 log.debug('')
 
-
-# найти файлы в исходной папке
+# find files in source folder
 # http://stackoverflow.com/a/5817256
 log.info('Searching all files...')
 files = []
@@ -94,18 +97,15 @@ log.info('Found files: {}'.format(len(files)))
 log.debug(' ' + '\n '.join(f for f in files))
 log.debug('')
 
-# all jpeg in list
-jpeg_img = [i for i in files if i.split('.')[-1] in extensions1]
-jpeg_onlynames = [n.split('\\')[-1].split('.')[0] for n in jpeg_img]
+# all first searched extensions in list
+img1 = [i for i in files if i.split('.')[-1] in extensions1]
+onlynames1 = [n.split('\\')[-1].split('.')[0] for n in img1]
 
+# no first searched  in list
+other_img = [i for i in files if i.split('.')[-1] not in extensions1
+             and i.split('\\')[-1].split('.')[0] not in onlynames1]
 
-# no jpeg in list
-other_img = [i for i in files
-             if i.split('.')[-1]
-             not in extensions1 and i.split('\\')[-1].split('.')[0]
-             not in jpeg_onlynames]
-
-files = jpeg_img + other_img
+files = img1 + other_img
 log.info('Filtered files: {}'.format(len(files)))
 log.debug(' ' + '\n '.join(f for f in files))
 log.debug('')
@@ -118,7 +118,7 @@ if len(notfound):
     log.debug(' ' + '\n '.join(f for f in notfound))
 log.debug('')
 
-# создаем папку, если не существует
+# create folder if not exist
 if not ospath.exists(outpath):
     makedirs(outpath)
 if not ospath.exists(outpath + done):
@@ -135,7 +135,8 @@ filehandler.setFormatter(formatter)
 
 bar = progressbar.ProgressBar(max_value=len(files),
                               # widgets=[progressbar.SimpleProgress()],
-                              redirect_stdout=True)
+                              redirect_stdout=True
+                              )
 i = 1
 for file in files:
     if file.split('.')[-1] in extensions:
@@ -143,15 +144,15 @@ for file in files:
             image = Image.open(file)
             original_size = max(image.size[0], image.size[1])
             if file.split('.')[-1] == 'eps':
-                image.load(scale=MAX_SIZE*1.5/original_size)
+                image.load(scale=MAX_SIZE * 1.5 / original_size)
                 original_size = max(image.size[0], image.size[1])
             if original_size >= MAX_SIZE:
                 if image.size[0] > image.size[1]:
                     resized_width = MAX_SIZE
-                    resized_height = int(round((MAX_SIZE/float(image.size[0]))*image.size[1]))
+                    resized_height = int(round((MAX_SIZE / float(image.size[0])) * image.size[1]))
                 else:
                     resized_height = MAX_SIZE
-                    resized_width = int(round((MAX_SIZE/float(image.size[1]))*image.size[0]))
+                    resized_width = int(round((MAX_SIZE / float(image.size[1])) * image.size[0]))
                 try:
                     image = image.convert("RGB").resize((resized_width, resized_height), Image.ANTIALIAS)
                     if file.split('.')[-1] == 'eps':
@@ -179,12 +180,11 @@ for file in files:
     else:
         newpath = outpath + other + file.split('\\')[-1]
         copyfile(file, newpath)
-        log.warn('Not supported: ' + file.split('\\')[-1])
+        log.warning('Not supported: ' + file.split('\\')[-1])
         status['Not_supported'] += 1
     if config['config']['log_level'] == 'INFO':
         bar.update(i)
         i += 1
-
 
 console.setFormatter(formatter2)
 filehandler.setFormatter(formatter2)
@@ -194,6 +194,6 @@ for key, value in status.items():
     log.info(key + ': ' + str(value))
 log.info('Not found files: {}'.format(len(notfound)))
 if len(notfound):
-    log.warn(' ' + '\n '.join(f for f in notfound))
+    log.warning(' ' + '\n '.join(f for f in notfound))
 log.info('')
 sys.exit()

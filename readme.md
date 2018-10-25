@@ -6,10 +6,12 @@ Application creates several folders and log file.
 
 In the folder with the name done get processed images or images
  of a smaller resolution and in the folder with the name other get the raw images.
-
-For support .eps - install ghostscript and pleace path to ghostscript to
- Path environment variable
+ 
+On some pc need install Microsoft Visual C++ 2010 Redistributable Package (x86).
+File name like a vcredist_x86.exe
+For support .eps - install ghostscript 32 bit and pleace path to ghostscript to
+ Path environment variable like a C:\Program Files (x86)\gs\gs9.25\bin
 
 How to build
 
-for compile to exe: pyinstaller --onefile --icon=icon_file.ico app.py
+for compile to exe: pyinstaller --onefile --icon=icon_file.ico CopyResImg.py
