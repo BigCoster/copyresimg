@@ -9,7 +9,7 @@ In the folder with the name done get processed images or images
  
 On some pc need install Microsoft Visual C++ 2010 Redistributable Package (x86).
 File name like a vcredist_x86.exe
-For support .eps - install ghostscript 32 bit and pleace path to ghostscript to
+For support .eps - install ghostscript 32 bit and put the path to ghostscript to
  Path environment variable like a C:\Program Files (x86)\gs\gs9.25\bin
 
 How to build
